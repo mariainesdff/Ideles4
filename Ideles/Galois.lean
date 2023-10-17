@@ -3,9 +3,9 @@ Copyright (c) 2022 María Inés de Frutos-Fernández. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: María Inés de Frutos-Fernández
 -/
-import FieldTheory.KrullTopology
-import FieldTheory.IsAlgClosed.AlgebraicClosure
-import GroupTheory.Abelianization
+import Mathlib.FieldTheory.KrullTopology
+import Mathlib.FieldTheory.IsAlgClosed.AlgebraicClosure
+import Mathlib.GroupTheory.Abelianization
 
 #align_import galois
 
@@ -32,15 +32,14 @@ variable (K : Type _) [Field K]
 
 /-- The absolute Galois group of `G`, defined as the Galois group of the field extension `K^al/K`, 
   where `K^al` is an algebraic closure of `K`. -/
-def GK :=
-  AlgebraicClosureAux K ≃ₐ[K] AlgebraicClosureAux K
+def GK := AlgebraicClosure K ≃ₐ[K] AlgebraicClosure K
 
 noncomputable instance : Group (GK K) :=
   AlgEquiv.aut
 
 /-- `G_K` is a topological space with the Krull topology. -/
 noncomputable instance : TopologicalSpace (GK K) :=
-  krullTopology K (AlgebraicClosureAux K)
+  krullTopology K (AlgebraicClosure K)
 
 /-- `G_K` is a topological group with the Krull topology. -/
 instance : TopologicalGroup (GK K) :=
