@@ -3,9 +3,9 @@ Copyright (c) 2022 María Inés de Frutos-Fernández. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: María Inés de Frutos-Fernández
 -/
-import RingTheory.ClassGroup
-import AdelesK
-import IdelesR
+import Mathlib.RingTheory.ClassGroup
+import Ideles.AdelesK
+import Ideles.IdelesR
 
 #align_import ideles_K
 
@@ -30,7 +30,7 @@ computing its kernel.
 ## Main results
 - `C_K.map_to_class_group.surjective` : The natural map `C_K → Cl(K)` is surjective.
 - `C_K.map_to_class_group.continuous` : The natural map `C_K → Cl(K)` is continuous.
-- `C_K.map_to_class_group.mem_kernel_iff` : We compute the kernel of `C_K → Cl(K)`.
+- `C_K.map_to_class_group.mem_kernel_finiteIdeleGroup` : We compute the kernel of `C_K → Cl(K)`.
 
 ## References
 * [J.W.S. Cassels, A. Frölich, *Algebraic Number Theory*][cassels1967algebraic]
@@ -47,8 +47,7 @@ open Set Function IsDedekindDomain
 open scoped TensorProduct NumberField nonZeroDivisors
 
 /-- Every nonzero element in a field is a unit. -/
-def Field.Units.mk' {F : Type _} [Field F] {k : F} (hk : k ≠ 0) : Units F
-    where
+def Field.Units.mk' {F : Type _} [Field F] {k : F} (hk : k ≠ 0) : Units F where
   val := k
   inv := k⁻¹
   val_inv := mul_inv_cancel hk
@@ -58,9 +57,8 @@ namespace FractionalIdeal
 
 theorem isUnit_of_spanSingleton_eq_one {R P : Type _} [CommRing R] {S : Submonoid R} [CommRing P]
     [Algebra R P] [loc : IsLocalization S P] [NoZeroSMulDivisors R P] {x : P}
-    (hx : spanSingleton S x = 1) : IsUnit x :=
-  by
-  rw [← span_singleton_one, span_singleton_eq_span_singleton] at hx 
+    (hx : spanSingleton S x = 1) : IsUnit x := by
+  rw [← spanSingleton_one, spanSingleton_eq_spanSingleton] at hx 
   obtain ⟨r, hr⟩ := hx
   rw [isUnit_iff_exists_inv']
   use algebraMap R P r
@@ -70,13 +68,12 @@ theorem isUnit_of_spanSingleton_eq_one {R P : Type _} [CommRing R] {S : Submonoi
 theorem unit_isPrincipal_iff (K R : Type _) [Field K] [CommRing R] [Algebra R K]
     [IsFractionRing R K] (I : (FractionalIdeal R⁰ K)ˣ) :
     ((I : FractionalIdeal R⁰ K) : Submodule R K).IsPrincipal ↔
-      ∃ x : Kˣ, (I : FractionalIdeal R⁰ K) = FractionalIdeal.spanSingleton R⁰ (x : K) :=
-  by
+      ∃ x : Kˣ, (I : FractionalIdeal R⁰ K) = FractionalIdeal.spanSingleton R⁰ (x : K) := by
   refine' ⟨fun h => _, fun h => _⟩
   · obtain ⟨x, hx⟩ := (FractionalIdeal.isPrincipal_iff _).mp h
     have hx0 : x ≠ 0 := by
       intro h0
-      rw [h0, span_singleton_zero] at hx 
+      rw [h0, spanSingleton_zero] at hx 
       exact Units.ne_zero _ hx
     exact ⟨Field.Units.mk' hx0, hx⟩
   · obtain ⟨x, hx⟩ := h
@@ -87,8 +84,7 @@ end FractionalIdeal
 section ClassGroup
 
 theorem ClassGroup.mk_surjective {R K : Type _} [CommRing R] [IsDomain R] [IsDedekindDomain R]
-    [Field K] [Algebra R K] [IsFractionRing R K] : Surjective (@ClassGroup.mk R K _ _ _ _ _) :=
-  by
+    [Field K] [Algebra R K] [IsFractionRing R K] : Surjective (@ClassGroup.mk R K _ _ _ _ _) := by
   intro I
   obtain ⟨J, hJ⟩ := ClassGroup.mk0_surjective I
   use FractionalIdeal.mk0 K J
@@ -98,10 +94,12 @@ theorem ClassGroup.mk_surjective {R K : Type _} [CommRing R] [IsDomain R] [IsDed
 theorem ClassGroup.mk_eq_one_iff' {R K : Type _} [CommRing R] [IsDomain R] [IsDedekindDomain R]
     [Field K] [Algebra R K] [IsFractionRing R K] {I : (FractionalIdeal R⁰ K)ˣ} :
     ClassGroup.mk I = 1 ↔
-      ∃ x : Kˣ, (I : FractionalIdeal R⁰ K) = FractionalIdeal.spanSingleton R⁰ (x : K) :=
-  by rw [ClassGroup.mk_eq_one_iff, coe_coe, FractionalIdeal.unit_isPrincipal_iff]
+      ∃ x : Kˣ, (I : FractionalIdeal R⁰ K) = FractionalIdeal.spanSingleton R⁰ (x : K) := by
+  rw [ClassGroup.mk_eq_one_iff, FractionalIdeal.unit_isPrincipal_iff]
 
 end ClassGroup
+
+/-
 
 namespace NumberField
 
@@ -219,7 +217,7 @@ theorem injUnitsK.injective : Injective (injUnitsK K) :=
   by
   intro x y hxy
   simp only [injUnitsK, Units.map, MonoidHom.mk', RingHom.coe_monoidHom, MonoidHom.coe_mk, ←
-    Units.eq_iff, Units.val_mk] at hxy 
+    Units.eq_finiteIdeleGroup, Units.val_mk] at hxy 
   ext
   exact injK.injective K hxy
 
@@ -296,9 +294,9 @@ theorem IK.finite_exponents (x : IK K) :
         by
         have hx : v_comp_val K x v ≠ 0 :=
           by
-          rw [v_comp_val, Valuation.ne_zero_iff]
+          rw [v_comp_val, Valuation.ne_zero_finiteIdeleGroup]
           exact VComp.ne_zero K x v
-        rw [mul_eq_one_iff_inv_eq₀ hx] at h_one 
+        rw [mul_eq_one_finiteIdeleGroup_inv_eq₀ hx] at h_one 
         rw [← h_one, ← inv_one, inv_lt_inv₀ (Ne.symm zero_ne_one) hx]
         exact hlt
       exact not_le.mpr h_inv
@@ -320,10 +318,10 @@ theorem IKF.mapToFractionalIdeals.surjective : Function.Surjective (IKF.mapToFra
 
 /-- A finite idèle `x` is in the kernel of `I_K_f.map_to_fractional_ideals` if and only if 
 `|x_v|_v = 1` for all `v`. -/
-theorem IKF.mapToFractionalIdeals.mem_kernel_iff (x : IKF K) :
+theorem IKF.mapToFractionalIdeals.mem_kernel_finiteIdeleGroup (x : IKF K) :
     IKF.mapToFractionalIdeals K x = 1 ↔
       ∀ v : HeightOneSpectrum (𝓞 K), FiniteIdele.toAddValuations (𝓞 K) K x v = 0 :=
-  @mapToFractionalIdeals.mem_kernel_iff (𝓞 K) K _ _ _ _ _ _ x
+  @mapToFractionalIdeals.mem_kernel_finiteIdeleGroup (𝓞 K) K _ _ _ _ _ _ x
 
 /-- `I_K_f.map_to_fractional_ideals` is continuous. -/
 theorem IKF.mapToFractionalIdeals.continuous : Continuous (IKF.mapToFractionalIdeals K) :=
@@ -344,10 +342,10 @@ theorem IK.mapToFractionalIdeals.surjective : Function.Surjective (IK.mapToFract
 
 /-- An idèle `x` is in the kernel of `I_K_f.map_to_fractional_ideals` if and only if `|x_v|_v = 1`
 for all `v`. -/
-theorem IK.mapToFractionalIdeals.mem_kernel_iff (x : IK K) :
+theorem IK.mapToFractionalIdeals.mem_kernel_finiteIdeleGroup (x : IK K) :
     IK.mapToFractionalIdeals K x = 1 ↔
       ∀ v : HeightOneSpectrum (𝓞 K), FiniteIdele.toAddValuations (𝓞 K) K (IK.fst K x) v = 0 :=
-  IKF.mapToFractionalIdeals.mem_kernel_iff (IK.fst K x)
+  IKF.mapToFractionalIdeals.mem_kernel_finiteIdeleGroup (IK.fst K x)
 
 /-- `I_K.map_to_fractional_ideals` is continuous. -/
 theorem IK.mapToFractionalIdeals.continuous : Continuous (IK.mapToFractionalIdeals K) :=
@@ -431,21 +429,21 @@ theorem IKF.MapToFractionalIdeal.map_units (k : Units K) :
   by
   set I := FractionalIdeal.spanSingleton (nonZeroDivisors ↥(𝓞 K)) (k : K) with hI_def
   have hI : I ≠ 0 := by
-    rw [hI_def, FractionalIdeal.spanSingleton_ne_zero_iff]
+    rw [hI_def, FractionalIdeal.spanSingleton_ne_zero_finiteIdeleGroup]
     exact Units.ne_zero k
   rw [← FractionalIdeal.factorization_principal I hI k hI_def]
   apply finprod_congr
   intro v
   apply congr_arg
   simp only [FiniteIdele.toAddValuations]
-  rw [WithZero.toInteger, ← injective.eq_iff multiplicative.of_add.injective, ofAdd_neg,
+  rw [WithZero.toInteger, ← injective.eq_finiteIdeleGroup multiplicative.of_add.injective, ofAdd_neg,
     ofAdd_toAdd, ← neg_sub_neg, ofAdd_sub, ← inv_div]
   apply congr_arg
   have hv : Valued.v (((inj_K_f.ring_hom K) k.val).val v) ≠ (0 : WithZero (Multiplicative ℤ)) :=
     by
-    rw [Valuation.ne_zero_iff, inj_K_f.ring_hom.v_comp, Units.val_eq_coe, ←
+    rw [Valuation.ne_zero_finiteIdeleGroup, inj_K_f.ring_hom.v_comp, Units.val_eq_coe, ←
       UniformSpace.Completion.coe_zero,
-      injective.ne_iff (@UniformSpace.Completion.coe_inj K v.adic_valued.to_uniform_space _)]
+      injective.ne_finiteIdeleGroup (@UniformSpace.Completion.coe_inj K v.adic_valued.to_uniform_space _)]
     exact Units.ne_zero k
   let z := Classical.choose (WithZero.ToInteger._proof_1 hv)
   let hz := Classical.choose_spec (WithZero.ToInteger._proof_1 hv)
@@ -470,7 +468,7 @@ theorem IKF.MapToFractionalIdeal.map_units (k : Units K) :
   rw [hn, hd]
   rw [height_one_spectrum.int_valuation_def_if_neg v (nonZeroDivisors.coe_ne_zero _),
     height_one_spectrum.int_valuation_def_if_neg]
-  · rw [Ne.def, ← @IsFractionRing.mk'_eq_zero_iff_eq_zero _ _ K _ _ _ _ d', hk]
+  · rw [Ne.def, ← @IsFractionRing.mk'_eq_zero_finiteIdeleGroup_eq_zero _ _ K _ _ _ _ d', hk]
     exact Units.ne_zero k
 
 /-- `I_K.map_to_fractional_ideals` sends the principal idèle `(k)_v` corresponding to `k ∈ K*` to 
@@ -485,7 +483,7 @@ theorem IK.mapToFractionalIdeals.map_units_K (k : Units K) :
 theorem IK.mapToClassGroup.map_units_K (k : Units K) :
     IK.mapToClassGroup K ((injUnitsK.groupHom K) k) = 1 :=
   by
-  simp only [I_K.map_to_class_group, ClassGroup.mk_eq_one_iff, coe_coe]
+  simp only [I_K.map_to_class_group, ClassGroup.mk_eq_one_finiteIdeleGroup, coe_coe]
   use k
   rw [← I_K.map_to_fractional_ideals.map_units_K k, FractionalIdeal.coe_spanSingleton]
 
@@ -537,13 +535,13 @@ theorem IK.mapToClassGroup.valuation_mem_kernel (x : IK K) (k : Units K)
           (finite_add_support _ _ _),
         ← hkx, eq_comm]
       apply FractionalIdeal.count_well_defined K v
-      · rw [FractionalIdeal.spanSingleton_ne_zero_iff]
+      · rw [FractionalIdeal.spanSingleton_ne_zero_finiteIdeleGroup]
         exact Units.ne_zero k
       ·
         rw [FractionalIdeal.coeIdeal_span_singleton,
           FractionalIdeal.spanSingleton_mul_spanSingleton, ← h, IsFractionRing.mk'_eq_div, h_dk,
           div_eq_inv_mul]
-    simp only [FiniteIdele.toAddValuations, WithZero.toInteger, ← neg_eq_iff_eq_neg, neg_sub] at
+    simp only [FiniteIdele.toAddValuations, WithZero.toInteger, ← neg_eq_finiteIdeleGroup_eq_neg, neg_sub] at
       h_exps_v 
     conv_rhs => rw [height_one_spectrum.valued_adic_completion_def, Units.val_eq_coe]
     rw [Valued.extension_extends, v.adic_valued_apply, ← h, v.valuation_of_mk']
@@ -559,20 +557,20 @@ theorem IK.mapToClassGroup.valuation_mem_kernel (x : IK K) (k : Units K)
 
 /-- An element `x ∈ I_K` is in the kernel of `C_K → Cl(K)` if and only if there exist `k ∈ K*` and
 `y ∈ I_K` such that `x = k*y` and `|y_v|_v = 1` for all `v`. -/
-theorem IK.mapToClassGroup.mem_kernel_iff (x : IK K) :
+theorem IK.mapToClassGroup.mem_kernel_finiteIdeleGroup (x : IK K) :
     IK.mapToClassGroup K x = 1 ↔
       ∃ (k : K) (hk : k ≠ 0),
         ∀ v : HeightOneSpectrum (𝓞 K),
           FiniteIdele.toAddValuations (↥(𝓞 K)) K ((IK.fst K) x) v =
             -WithZero.toInteger (Units.valuation_ne_zero (𝓞 K) K v hk) :=
   by
-  rw [I_K.map_to_class_group, ClassGroup.mk_eq_one_iff']
+  rw [I_K.map_to_class_group, ClassGroup.mk_eq_one_finiteIdeleGroup']
   refine' ⟨fun h => _, fun h => _⟩
   · obtain ⟨k, hk⟩ := h
     use(k : K), k.ne_zero
     intro v
     rw [FiniteIdele.toAddValuations, neg_inj, WithZero.toInteger, WithZero.toInteger,
-      injective.eq_iff multiplicative.to_add.injective]
+      injective.eq_finiteIdeleGroup multiplicative.to_add.injective]
     apply Classical.some_spec₂
     intro a ha
     rw [eq_comm]
@@ -619,7 +617,7 @@ theorem CK.mapToClassGroup.continuous : Continuous (CK.mapToClassGroup K) :=
 
 /-- An element `x ∈ C_K` is in the kernel of `C_K → Cl(K)` if and only if `x` comes from an idèle 
 of the form `k*y`, with `k ∈ K*` and `|y_v|_v = 1` for all `v`. -/
-theorem CK.mapToClassGroup.mem_kernel_iff (x : CK K) :
+theorem CK.mapToClassGroup.mem_kernel_finiteIdeleGroup (x : CK K) :
     CK.mapToClassGroup K x = 1 ↔
       ∃ (k : K) (hk : k ≠ 0),
         ∀ v : HeightOneSpectrum (𝓞 K),
@@ -635,45 +633,42 @@ theorem CK.mapToClassGroup.mem_kernel_iff (x : CK K) :
     rw [← hz_def, ← hz, C_K.map_to_class_group, ← hz_def, QuotientGroup.lift_quot_mk]
     rfl
   rw [this]
-  exact I_K.map_to_class_group.mem_kernel_iff _
+  exact I_K.map_to_class_group.mem_kernel_finiteIdeleGroup _
 
 end NumberField
+
+-/
 
 namespace FunctionField
 
 /-! ### The idèle group of a function field
 We define the (finite) idèle group of a function field `F`, with its topological group structure. -/
 
+open DedekindDomain
 
 variable (k F : Type) [Field k] [Field F] [Algebra (Polynomial k) F] [Algebra (RatFunc k) F]
   [FunctionField k F] [IsScalarTower (Polynomial k) (RatFunc k) F] [IsSeparable (RatFunc k) F]
   [DecidableEq (RatFunc k)]
 
 /-- The finite idèle group of the function field `F`. -/
-def IFF :=
-  Units (AFF k F)
+def finiteIdeleGroup := Units (finiteAdeleRing k F)
 
 /-- The idèle group of the function field `F`.-/
-def IF :=
-  Units (AF k F)
+def ideleGroup := Units (adeleRing k F)
 
-instance : CommGroup (IFF k F) :=
-  Units.instCommGroupUnits
+instance : CommGroup (finiteIdeleGroup k F) := Units.instCommGroupUnits
 
-instance : CommGroup (IF k F) :=
-  Units.instCommGroupUnits
+instance : CommGroup (ideleGroup k F) := Units.instCommGroupUnits
 
-instance : TopologicalSpace (IFF k F) :=
-  FiniteIdeleGroup'.topologicalSpace (ringOfIntegers k F) F
+instance : TopologicalSpace (finiteIdeleGroup k F) :=
+  finiteIdeleGroup.TopologicalSpace (ringOfIntegers k F) F
 
-instance : TopologicalGroup (IFF k F) :=
-  FiniteIdeleGroup'.topologicalGroup (ringOfIntegers k F) F
+instance : TopologicalGroup (finiteIdeleGroup k F) :=
+  finiteIdeleGroup.TopologicalGroup (ringOfIntegers k F) F
 
-instance : TopologicalSpace (IF k F) :=
-  Units.topologicalSpace
+instance : TopologicalSpace (ideleGroup k F) := Units.instTopologicalSpaceUnits
 
-instance : TopologicalGroup (IF k F) :=
-  Units.topologicalGroup
+instance : TopologicalGroup (ideleGroup k F) :=
+  Units.instTopologicalGroupUnitsInstTopologicalSpaceUnitsInstGroupUnits
 
 end FunctionField
-

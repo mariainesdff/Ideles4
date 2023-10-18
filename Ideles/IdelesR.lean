@@ -61,16 +61,19 @@ variable (R : Type) (K : Type) [CommRing R] [IsDomain R] [IsDedekindDomain R] [F
 /-- The finite idèle group of `R` is the unit group of its finite adèle ring. -/
 def finiteIdeleGroup := Units (finiteAdeleRing R K)
 
-instance : TopologicalSpace (finiteIdeleGroup R K) := instTopologicalSpaceUnits
+instance finiteIdeleGroup.TopologicalSpace : TopologicalSpace (finiteIdeleGroup R K) := 
+  instTopologicalSpaceUnits
 
-instance : CommGroup (finiteIdeleGroup R K) := instCommGroupUnits
+instance finiteIdeleGroup.CommGroup : CommGroup (finiteIdeleGroup R K) := instCommGroupUnits
 
-instance : TopologicalGroup (finiteIdeleGroup R K) :=
+instance finiteIdeleGroup.TopologicalGroup : TopologicalGroup (finiteIdeleGroup R K) :=
   instTopologicalGroupUnitsInstTopologicalSpaceUnitsInstGroupUnits
 
-instance : UniformSpace (finiteIdeleGroup R K) := TopologicalGroup.toUniformSpace _
+instance finiteIdeleGroup.UniformSpace : UniformSpace (finiteIdeleGroup R K) :=
+  TopologicalGroup.toUniformSpace _
 
-instance : UniformGroup (finiteIdeleGroup R K) := comm_topologicalGroup_is_uniform
+instance finiteIdeleGroup.UniformGroup : UniformGroup (finiteIdeleGroup R K) :=
+  comm_topologicalGroup_is_uniform
 
 theorem right_inv (x : Units K) : 
     algebraMap K (finiteAdeleRing R K) x.val * algebraMap K (finiteAdeleRing R K)  x.inv = 1 := by
