@@ -33,9 +33,11 @@ adèle ring, number field, function field
 
 noncomputable section
 
-open Function IsDedekindDomain
+open Function IsDedekindDomain DedekindDomain
 
 open scoped TensorProduct
+
+/-
 
 namespace NumberField
 
@@ -46,8 +48,7 @@ We define the (finite) adèle ring of a number field `K`, with its topological r
 variable (K : Type) [Field K] [NumberField K]
 
 /-- The finite adèle ring of `K`.-/
-def AKF :=
-  FiniteAdeleRing' (ringOfIntegers K) K
+def AKF := finiteAdeleRing (ringOfIntegers K) K
 
 /-- The adèle ring of `K`.-/
 def AK :=
@@ -168,30 +169,26 @@ def injK.ringHom : RingHom K (AK K) :=
 
 end NumberField
 
+-/
+
 namespace FunctionField
 
 /-! ### The adèle ring of a function field
 We define the (finite) adèle ring of a function field `F`, with its topological ring structure. -/
 
-
 variable (k F : Type) [Field k] [Field F] [Algebra (Polynomial k) F] [Algebra (RatFunc k) F]
   [FunctionField k F] [IsScalarTower (Polynomial k) (RatFunc k) F] [IsSeparable (RatFunc k) F]
   [DecidableEq (RatFunc k)]
 
-instance : Algebra (RatFunc k) (FqtInfty k) := by
-  apply
-    RingHom.toAlgebra
-      (@UniformSpace.Completion.coeRingHom (RatFunc k) _
-        (FunctionField.inftyValuedFqt k).toUniformSpace _
-        (FunctionField.inftyValuedFqt k).to_uniformAddGroup)
+instance : Algebra (RatFunc k) (FqtInfty k) := RingHom.toAlgebra
+  (@UniformSpace.Completion.coeRingHom (RatFunc k) _ (FunctionField.inftyValuedFqt k).toUniformSpace
+    _ (FunctionField.inftyValuedFqt k).toUniformAddGroup)
 
 /-- The finite adèle ring of `F`.-/
-def AFF :=
-  FiniteAdeleRing' (ringOfIntegers k F) F
+def finiteAdeleRing := DedekindDomain.finiteAdeleRing (ringOfIntegers k F) F
 
 /-- The finite adèle ring of `F`.-/
-def AF :=
-  AFF k F × FqtInfty k ⊗[RatFunc k] F
+def adeleRing := finiteAdeleRing k F × FqtInfty k ⊗[RatFunc k] F
 
 open scoped BigOperators
 
@@ -202,9 +199,8 @@ def LinearEquiv.ktBasis :
 
 /-- The natural linear map from `k((t⁻¹))^n` to `k((t⁻¹)) ⊗[k(t)] k(t)^n`. -/
 def LinearMap.fqtInftynToFqtInftyTensorKtn (n : ℕ) :
-    (Fin n → FqtInfty k) →ₗ[FqtInfty k] FqtInfty k ⊗[RatFunc k] (Fin n → RatFunc k)
-    where
-  toFun x := ∑ m : Fin n, TensorProduct.mk _ _ _ (x m) fun m : Fin n => (1 : RatFunc k)
+    (Fin n → FqtInfty k) →ₗ[FqtInfty k] FqtInfty k ⊗[RatFunc k] (Fin n → RatFunc k) where
+  toFun x := ∑ m : Fin n, TensorProduct.mk _ _ _ (x m) fun _ : Fin n => (1 : RatFunc k)
   map_add' x y := by
     simp only [map_add, TensorProduct.mk_apply, Pi.add_apply, LinearMap.add_apply,
       Finset.sum_add_distrib]
@@ -213,33 +209,22 @@ def LinearMap.fqtInftynToFqtInftyTensorKtn (n : ℕ) :
 
 /-- The linear map from `k((t⁻¹)) ⊗[k(t)] k(t)^(dim_(F_q(t))(F))` to `k((t⁻¹)) ⊗[k(t)] F`
 obtained as a base change of `linear_equiv.kt_basis`. -/
-def LinearMap.baseChange :
-    FqtInfty k ⊗[RatFunc k]
-        (Fin (FiniteDimensional.finrank (RatFunc k) F) → RatFunc k) →ₗ[FqtInfty k]
-      FqtInfty k ⊗[RatFunc k] F :=
-  LinearMap.baseChange (FqtInfty k) (LinearEquiv.ktBasis k F).toLinearMap
+lemma LinearMap.baseChange : 
+    (FqtInfty k ⊗[RatFunc k] (Fin (FiniteDimensional.finrank (RatFunc k) F) → RatFunc k)) 
+      →ₗ[FqtInfty k] FqtInfty k ⊗[RatFunc k] F := 
+  _root_.LinearMap.baseChange (FqtInfty k) (LinearEquiv.ktBasis k F).toLinearMap
 
 /-- The resulting linear map from `k((t⁻¹))^(dim_(F_q(t))(F))` to `k((t⁻¹)) ⊗[k(t)] F`. -/
-def LinearMap.fqtInftynToFqtInftyTensorF :
+def LinearMap.FqtInftynToFqtInftyTensorF :
     (Fin (FiniteDimensional.finrank (RatFunc k) F) → FqtInfty k) →ₗ[FqtInfty k]
       FqtInfty k ⊗[RatFunc k] F :=
   LinearMap.comp (LinearMap.baseChange k F) (LinearMap.fqtInftynToFqtInftyTensorKtn k _)
 
-instance : CommRing (AFF k F) :=
-  FiniteAdeleRing'.commRing (ringOfIntegers k F) F
-
-instance : CommRing (AF k F) :=
-  Prod.commRing
-
-instance : TopologicalSpace (AFF k F) :=
-  FiniteAdeleRing'.topologicalSpace (ringOfIntegers k F) F
-
-instance : TopologicalRing (AFF k F) :=
-  FiniteAdeleRing'.topologicalRing (ringOfIntegers k F) F
+instance : CommRing (adeleRing k F) := Prod.instCommRing
 
 /-- The topological ring structure on the infinite places of `F`. -/
 def InfiniteAdeles.ringTopology : RingTopology (FqtInfty k ⊗[RatFunc k] F) :=
-  RingTopology.coinduced (LinearMap.fqtInftynToFqtInftyTensorF k F)
+  RingTopology.coinduced (LinearMap.FqtInftynToFqtInftyTensorF k F)
 
 instance : TopologicalSpace (FqtInfty k ⊗[RatFunc k] F) :=
   (InfiniteAdeles.ringTopology k F).toTopologicalSpace
@@ -247,11 +232,10 @@ instance : TopologicalSpace (FqtInfty k ⊗[RatFunc k] F) :=
 instance : TopologicalRing (FqtInfty k ⊗[RatFunc k] F) :=
   (InfiniteAdeles.ringTopology k F).toTopologicalRing
 
-instance : TopologicalSpace (AF k F) :=
-  Prod.topologicalSpace
+instance : TopologicalSpace (adeleRing k F) := instTopologicalSpaceProd
 
-instance : TopologicalRing (AF k F) :=
-  Prod.topologicalRing
+instance : TopologicalRing (adeleRing k F) := 
+  instTopologicalRingProdInstTopologicalSpaceProdInstNonUnitalNonAssocRing
 
 end FunctionField
 
