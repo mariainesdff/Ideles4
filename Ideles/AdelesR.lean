@@ -455,6 +455,7 @@ instance : Algebra K (finiteAdeleRing R K) where
     simp only [Algebra.smul_def]
     rfl
 
+/- Not needed after creating the algebra instance:
 
 /-- The diagonal inclusion `k ↦ (k)_v` of `K` into the finite adèle ring of `R`. -/
 @[simps coe]
@@ -511,17 +512,22 @@ def injK.ringHom : RingHom K (finiteAdeleRing R K) :=
 theorem injK.ringHom_apply {k : K} : injK.ringHom R K k = injK R K k :=
   rfl
 
+ -/
+
 /-- If `HeightOneSpectrum R` is nonempty, then `inj_K` is injective. Note that the nonemptiness
 hypothesis is satisfied for every Dedekind domain that is not a field. -/
-theorem injK.injective [inh : Nonempty (HeightOneSpectrum R)] : Injective (injK.ringHom R K) := by 
+theorem algebraMap_injective [inh : Nonempty (HeightOneSpectrum R)] : 
+  Injective (algebraMap K (finiteAdeleRing R K)) := by 
   rw [RingHom.injective_iff_ker_eq_bot, RingHom.ker_eq_bot_iff_eq_zero]
   intro x hx
-  rw [injK.ringHom, RingHom.coe_mk, MonoidHom.coe_mk, OneHom.coe_mk, injK_apply, Subtype.mk_eq_mk] 
-    at hx 
+  rw [RingHom.coe_mk, MonoidHom.coe_mk, OneHom.coe_mk, Subtype.mk_eq_mk] at hx 
   let v : HeightOneSpectrum R := (Classical.inhabited_of_nonempty inh).default
   have h_inj : Function.Injective (Coe.coe : K → v.adicCompletion K) :=
     @UniformSpace.Completion.coe_injective K v.adicValued.toUniformSpace _
   apply h_inj (congr_fun hx v)
+
+
+#exit
 
 /-! ### Alternative definition of the finite adèle ring
 We can also define the finite adèle ring of `R` as the localization of `R_hat` at `R∖{0}`. We denote
