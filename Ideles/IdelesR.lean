@@ -3,7 +3,7 @@ Copyright (c) 2022 María Inés de Frutos-Fernández. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: María Inés de Frutos-Fernández
 -/
-import AdelesR
+import Ideles.AdelesR
 
 #align_import ideles_R
 
@@ -46,9 +46,11 @@ finite idèle group, dedekind domain, fractional ideal
 
 noncomputable section
 
-open scoped BigOperators Classical
+open scoped BigOperators Classical DiscreteValuation
 
-open Set Function IsDedekindDomain
+open Set Function IsDedekindDomain IsDedekindDomain.HeightOneSpectrum Units
+
+namespace DedekindDomain
 
 variable (R : Type) (K : Type) [CommRing R] [IsDomain R] [IsDedekindDomain R] [Field K]
   [Algebra R K] [IsFractionRing R K] (v : HeightOneSpectrum R)
@@ -57,37 +59,44 @@ variable (R : Type) (K : Type) [CommRing R] [IsDomain R] [IsDedekindDomain R] [F
 
 
 /-- The finite idèle group of `R` is the unit group of its finite adèle ring. -/
-def FiniteIdeleGroup' :=
-  Units (FiniteAdeleRing' R K)
+def finiteIdeleGroup := Units (finiteAdeleRing R K)
 
-instance : TopologicalSpace (FiniteIdeleGroup' R K) :=
-  Units.topologicalSpace
+instance : TopologicalSpace (finiteIdeleGroup R K) := instTopologicalSpaceUnits
 
-instance : CommGroup (FiniteIdeleGroup' R K) :=
-  Units.instCommGroupUnits
+instance : CommGroup (finiteIdeleGroup R K) := instCommGroupUnits
 
-instance : TopologicalGroup (FiniteIdeleGroup' R K) :=
-  Units.topologicalGroup
+instance : TopologicalGroup (finiteIdeleGroup R K) :=
+  instTopologicalGroupUnitsInstTopologicalSpaceUnitsInstGroupUnits
 
-instance : UniformSpace (FiniteIdeleGroup' R K) :=
-  TopologicalGroup.toUniformSpace _
+instance : UniformSpace (finiteIdeleGroup R K) := TopologicalGroup.toUniformSpace _
 
-instance : UniformGroup (FiniteIdeleGroup' R K) :=
-  comm_topologicalGroup_is_uniform
+instance : UniformGroup (finiteIdeleGroup R K) := comm_topologicalGroup_is_uniform
 
-theorem right_inv (x : Units K) : injK R K x.val * injK R K x.inv = 1 :=
-  by
-  rw [← injK.map_hMul, Units.val_eq_coe, Units.inv_eq_val_inv, Units.mul_inv]
-  exact injK.map_one R K
+theorem right_inv (x : Units K) : 
+    algebraMap K (finiteAdeleRing R K) x.val * algebraMap K (finiteAdeleRing R K)  x.inv = 1 := by
+  simp only [inv_eq_val_inv, val_inv_eq_inv_val, ← map_mul, ne_eq, ne_zero, 
+    not_false_eq_true, mul_inv_cancel, map_one]
 
-theorem left_inv (x : Units K) : injK R K x.inv * injK R K x.val = 1 := by rw [mul_comm, right_inv]
+theorem left_inv (x : Units K) : 
+    algebraMap K (finiteAdeleRing R K) x.inv * algebraMap K (finiteAdeleRing R K) x.val = 1 := 
+  by rw [mul_comm, right_inv]
 
+def monoidHom_to_finiteIdeleGroup : MonoidHom (Units K) (finiteIdeleGroup R K) where
+  toFun   := fun x => ⟨algebraMap _ _ x.val, algebraMap _ _ x.inv, right_inv R K x, left_inv R K x⟩
+  map_one' := by simp only [val_one, map_one, inv_eq_val_inv, inv_one]; rfl
+  map_mul' := fun x y => by
+    simp only [val_mul, map_mul, inv_eq_val_inv, mul_inv_rev, val_inv_eq_inv_val]; rfl
+
+/-
 /-- The diagonal inclusion `k ↦ (k)_v` of `K*` into the finite idèle group of `R`. -/
-def injUnitsK : Units K → FiniteIdeleGroup' R K := fun x =>
+def injUnitsK : Units K → finiteIdeleGroup R K := fun x =>
   ⟨injK R K x.val, injK R K x.inv, right_inv R K x, left_inv R K x⟩
 
 @[simp]
-theorem injUnitsK.map_one : injUnitsK R K 1 = 1 := by rw [injUnitsK]; simp only [injK.map_one]; rfl
+theorem injUnitsK.map_one : injUnitsK R K 1 = 1 := by 
+  rw [injUnitsK]
+  simp only [Units.val_one, injK.map_one, Units.inv_eq_val_inv, inv_one]
+  rfl
 
 @[simp]
 theorem injUnitsK.map_hMul (x y : Units K) :
@@ -97,99 +106,93 @@ theorem injUnitsK.map_hMul (x y : Units K) :
   simp_rw [Units.val_eq_coe, Units.val_mul, Units.val_mk, injK.map_hMul]
 
 /-- The map `inj_units_K` is a group homomorphism. -/
-def injUnitsK.groupHom : MonoidHom (Units K) (FiniteIdeleGroup' R K)
+def injUnitsK.groupHom : MonoidHom (Units K) (finiteIdeleGroup R K)
     where
   toFun := injUnitsK R K
   map_one' := injUnitsK.map_one R K
   map_mul' := injUnitsK.map_hMul R K
 
-/-- If `height_one_spectrum R` is nonempty, then `inj_units_K` is injective. Note that the
+  -/
+
+/-- If `HeightOneSpectrum R` is nonempty, then `inj_units_K` is injective. Note that the
 nonemptiness hypothesis is satisfied for every Dedekind domain that is not a field. -/
 theorem injUnitsK.injective [inh : Inhabited (HeightOneSpectrum R)] :
-    Injective (injUnitsK.groupHom R K) :=
-  by
+    Injective (monoidHom_to_finiteIdeleGroup R K) := by
   rw [← MonoidHom.ker_eq_bot_iff]
   ext x
-  rw [MonoidHom.mem_ker, Subgroup.mem_bot, injUnitsK.groupHom, MonoidHom.coe_mk, injUnitsK, ←
-    Units.eq_iff, Units.val_mk, Units.val_eq_coe, ← Units.eq_iff]
-  exact injective.eq_iff (injK.injective R K)
+  rw [MonoidHom.mem_ker, Subgroup.mem_bot, monoidHom_to_finiteIdeleGroup, MonoidHom.coe_mk, 
+    ← eq_iff, ← val_eq_one]
+  exact Injective.eq_iff (algebraMap_injective R K)
 
-theorem prod_val_inv_eq_one (x : FiniteIdeleGroup' R K) : x.val.val v * x.inv.val v = 1 := by
-  rw [← Pi.mul_apply, hMul_apply_val, Units.val_inv, Subtype.val_eq_coe, ← one_def, Subtype.coe_mk,
-    Pi.one_apply]
+theorem val_mul_inv_eq_one (x : finiteIdeleGroup R K) : x.val.val v * x.inv.val v = 1 := by
+  rw [← Pi.mul_apply, mul_apply_val, Units.val_inv, ← one_def, Subtype.coe_mk, Pi.one_apply]
 
-theorem VComp.ne_zero (x : FiniteIdeleGroup' R K) : x.val.val v ≠ 0 :=
-  left_ne_zero_of_mul_eq_one (prod_val_inv_eq_one R K v x)
+theorem val_val_ne_zero (x : finiteIdeleGroup R K) : x.val.val v ≠ 0 :=
+  left_ne_zero_of_mul_eq_one (val_mul_inv_eq_one R K v x)
 
-theorem valuation_val_inv (x : FiniteIdeleGroup' R K) :
-    (Valued.v (x.val.val v) : WithZero (Multiplicative ℤ)) * Valued.v (x.inv.val v) = 1 := by
-  rw [← Valuation.map_mul, prod_val_inv_eq_one, Valuation.map_one]
+theorem valuation_val_inv (x : finiteIdeleGroup R K) :
+    (Valued.v (x.val.val v) : ℤₘ₀) * Valued.v (x.inv.val v) = 1 := by
+  rw [← Valuation.map_mul, val_mul_inv_eq_one, Valuation.map_one]
 
-theorem valuation_inv (x : FiniteIdeleGroup' R K) :
-    Valued.v (x.inv.val v) = (Valued.v (x.val.val v))⁻¹ :=
-  by
+theorem valuation_inv (x : finiteIdeleGroup R K) :
+    Valued.v (x.inv.val v) = (Valued.v (x.val.val v))⁻¹ := by
   rw [← mul_one (Valued.v (x.val.val v))⁻¹, eq_inv_mul_iff_mul_eq₀, valuation_val_inv]
-  · exact (Valuation.ne_zero_iff _).mpr (VComp.ne_zero R K v x)
+  exact (Valuation.ne_zero_iff _).mpr (val_val_ne_zero R K v x)
 
 /-- For any finite idèle `x`, there are finitely many maximal ideals `v` of `R` for which
 `x_v ∉ R_v` or `x⁻¹_v ∉ R_v`. -/
-theorem restricted_product (x : FiniteIdeleGroup' R K) :
+theorem restricted_product (x : finiteIdeleGroup R K) :
     ({v : HeightOneSpectrum R | ¬x.val.val v ∈ v.adicCompletionIntegers K} ∪
         {v : HeightOneSpectrum R | ¬x.inv.val v ∈ v.adicCompletionIntegers K}).Finite :=
   Finite.union x.val.property x.inv.property
 
 /-- For any finite idèle `x`, there are finitely many maximal ideals `v` of `R` for which
 `|x_v|_v ≠ 1`. -/
-theorem finite_exponents (x : FiniteIdeleGroup' R K) :
-    Set.Finite
-      {v : HeightOneSpectrum R | (Valued.v (x.val.val v) : WithZero (Multiplicative ℤ)) ≠ 1} :=
+theorem finite_exponents (x : finiteIdeleGroup R K) :
+    Set.Finite {v : HeightOneSpectrum R | (Valued.v (x.val.val v) : ℤₘ₀) ≠ 1} :=
   haveI h_subset :
-    {v : height_one_spectrum R | (Valued.v (x.val.val v) : WithZero (Multiplicative ℤ)) ≠ 1} ⊆
-      {v : height_one_spectrum R | ¬x.val.val v ∈ v.adicCompletionIntegers K} ∪
-        {v : height_one_spectrum R | ¬x.inv.val v ∈ v.adicCompletionIntegers K} :=
-    by
+    {v : HeightOneSpectrum R | (Valued.v (x.val.val v) : ℤₘ₀) ≠ 1} ⊆
+      {v : HeightOneSpectrum R | ¬x.val.val v ∈ v.adicCompletionIntegers K} ∪
+        {v : HeightOneSpectrum R | ¬x.inv.val v ∈ v.adicCompletionIntegers K} := by
     intro v hv
-    rw [mem_union, mem_set_of_eq, mem_set_of_eq, adicCompletion.is_integer,
-      adicCompletion.is_integer]
-    rw [mem_set_of_eq] at hv 
+    simp only [mem_union, mem_setOf_eq,mem_adicCompletionIntegers]
+    rw [mem_setOf_eq] at hv 
     cases' lt_or_gt_of_ne hv with hlt hgt
     · right
-      have h_one :
-        (Valued.v (x.val.val v) : WithZero (Multiplicative ℤ)) * Valued.v (x.inv.val v) = 1 :=
+      have h_one : (Valued.v (x.val.val v) : ℤₘ₀) * Valued.v (x.inv.val v) = 1 :=
         valuation_val_inv R K v x
-      have h_inv : (1 : WithZero (Multiplicative ℤ)) < Valued.v (x.inv.val v) :=
-        by
-        have hx : (Valued.v (x.val.val v) : WithZero (Multiplicative ℤ)) ≠ 0 :=
-          by
+      have h_inv : (1 : ℤₘ₀) < Valued.v (x.inv.val v) := by
+        have hx : (Valued.v (x.val.val v) : ℤₘ₀) ≠ 0 := by
           rw [Valuation.ne_zero_iff]
-          exact left_ne_zero_of_mul_eq_one (prod_val_inv_eq_one R K v x)
+          exact left_ne_zero_of_mul_eq_one (val_mul_inv_eq_one R K v x)
         rw [mul_eq_one_iff_inv_eq₀ hx] at h_one 
         rw [← h_one, ← inv_one, inv_lt_inv₀ (Ne.symm zero_ne_one) hx]
         exact hlt
       exact not_le.mpr h_inv
     · left; exact not_le.mpr hgt
-  finite.subset (restricted_product R K x) h_subset
+  Finite.subset (restricted_product R K x) h_subset
+
+#exit
 
 /-- For any `k ∈ K*` and any maximal ideal `v` of `R`, the valuation `|k|_v` is nonzero. -/
 theorem Units.valuation_ne_zero {k : K} (hk : k ≠ 0) :
-    (Valued.v ((coe : K → v.adicCompletion K) k) : WithZero (Multiplicative ℤ)) ≠ 0 :=
-  by
+    (Valued.v ((coe : K → v.adicCompletion K) k) : ℤₘ₀) ≠ 0 := by
   rw [Valuation.ne_zero_iff, ← UniformSpace.Completion.coe_zero,
     injective.ne_iff UniformSpace.Completion.coe_inj]
   exact hk
   infer_instance
 
 /-- The integer number corresponding to a nonzero `x` in `with_zero (multiplicative ℤ)`. -/
-def WithZero.toInteger {x : WithZero (Multiplicative ℤ)} (hx : x ≠ 0) : ℤ :=
+def WithZero.toInteger {x : ℤₘ₀} (hx : x ≠ 0) : ℤ :=
   Multiplicative.toAdd (Classical.choose (WithZero.ne_zero_iff_exists.mp hx))
 
 /-- Given a finite idèle `x`, for each maximal ideal `v` of `R` we obtain an integer that 
 represents the additive `v`-adic valuation of the component `x_v` of `x`. -/
-def FiniteIdele.toAddValuations (x : FiniteIdeleGroup' R K) : ∀ v : HeightOneSpectrum R, ℤ :=
+def FiniteIdele.toAddValuations (x : finiteIdeleGroup R K) : ∀ v : HeightOneSpectrum R, ℤ :=
   fun v => -WithZero.toInteger ((Valuation.ne_zero_iff Valued.v).mpr (VComp.ne_zero R K v x))
 
 theorem FiniteIdele.toAddValuations.map_one :
-    FiniteIdele.toAddValuations R K (1 : FiniteIdeleGroup' R K) = fun v : HeightOneSpectrum R =>
+    FiniteIdele.toAddValuations R K (1 : finiteIdeleGroup R K) = fun v : HeightOneSpectrum R =>
       (0 : ℤ) :=
   by
   rw [FiniteIdele.toAddValuations]
@@ -201,7 +204,7 @@ theorem FiniteIdele.toAddValuations.map_one :
       (WithZero.ToInteger._proof_1 (FiniteIdele.ToAddValuations._proof_1 R K 1 v))]
   exact Valuation.map_one _
 
-theorem FiniteIdele.toAddValuations.map_hMul (x y : FiniteIdeleGroup' R K) :
+theorem FiniteIdele.toAddValuations.map_hMul (x y : finiteIdeleGroup R K) :
     FiniteIdele.toAddValuations R K (x * y) =
       FiniteIdele.toAddValuations R K x + FiniteIdele.toAddValuations R K y :=
   by
@@ -217,19 +220,19 @@ theorem FiniteIdele.toAddValuations.map_hMul (x y : FiniteIdeleGroup' R K) :
 
 /-- For any finite idèle `x`, there are finitely many maximal ideals `v` of `R` for which
 the additive `v`-adic valuation of `x_v` is nonzero. -/
-theorem finite_add_support (x : FiniteIdeleGroup' R K) :
+theorem finite_add_support (x : finiteIdeleGroup R K) :
     ∀ᶠ v : HeightOneSpectrum R in Filter.cofinite, FiniteIdele.toAddValuations R K x v = 0 :=
   by
   have h := finite_exponents R K x
   rw [FiniteIdele.toAddValuations]
   simp_rw [neg_eq_zero, WithZero.toInteger]
   have h_subset :
-    {v : height_one_spectrum R |
+    {v : HeightOneSpectrum R |
         ¬Multiplicative.toAdd
               (Classical.choose
                 (WithZero.ToInteger._proof_1 (valued.v.ne_zero_iff.mpr (VComp.ne_zero R K v x)))) =
             0} ⊆
-      {v : height_one_spectrum R | (Valued.v (x.val.val v) : WithZero (Multiplicative ℤ)) ≠ 1} :=
+      {v : HeightOneSpectrum R | (Valued.v (x.val.val v) : ℤₘ₀) ≠ 1} :=
     by
     intro v hv
     set y :=
@@ -249,15 +252,15 @@ theorem finite_add_support (x : FiniteIdeleGroup' R K) :
 
 /-- For any finite idèle `x`, there are finitely many maximal ideals `v` of `R` for which
 `v^(finite_idele.to_add_valuations R K x v)` is not the fractional ideal `(1)`.  -/
-theorem finite_support (x : FiniteIdeleGroup' R K) :
+theorem finite_support (x : finiteIdeleGroup R K) :
     (mulSupport fun v : HeightOneSpectrum R =>
         (v.asIdeal : FractionalIdeal (nonZeroDivisors R) K) ^
           FiniteIdele.toAddValuations R K x v).Finite :=
   haveI h_subset :
-    {v : height_one_spectrum R |
+    {v : HeightOneSpectrum R |
         (v.asIdeal : FractionalIdeal (nonZeroDivisors R) K) ^ FiniteIdele.toAddValuations R K x v ≠
           1} ⊆
-      {v : height_one_spectrum R | (Valued.v (x.val.val v) : WithZero (Multiplicative ℤ)) ≠ 1} :=
+      {v : HeightOneSpectrum R | (Valued.v (x.val.val v) : ℤₘ₀) ≠ 1} :=
     by
     intro v
     rw [mem_set_of_eq]; rw [mem_set_of_eq]
@@ -274,17 +277,17 @@ theorem finite_support (x : FiniteIdeleGroup' R K) :
 
 /-- For any finite idèle `x`, there are finitely many maximal ideals `v` of `R` for which
 `v^-(finite_idele.to_add_valuations R K x v)` is not the fractional ideal `(1)`.  -/
-theorem finite_support' (x : FiniteIdeleGroup' R K) :
+theorem finite_support' (x : finiteIdeleGroup R K) :
     (mulSupport fun v : HeightOneSpectrum R =>
         (v.asIdeal : FractionalIdeal (nonZeroDivisors R) K) ^
           (-FiniteIdele.toAddValuations R K x v)).Finite :=
   by
   have h :
-    {v : height_one_spectrum R |
+    {v : HeightOneSpectrum R |
         (v.asIdeal : FractionalIdeal (nonZeroDivisors R) K) ^
             (-FiniteIdele.toAddValuations R K x v) ≠
           1} =
-      {v : height_one_spectrum R |
+      {v : HeightOneSpectrum R |
         (v.asIdeal : FractionalIdeal (nonZeroDivisors R) K) ^ FiniteIdele.toAddValuations R K x v ≠
           1} :=
     by
@@ -295,13 +298,13 @@ theorem finite_support' (x : FiniteIdeleGroup' R K) :
 
 /-- The map from `finite_idele_group' R K` to the fractional_ideals of `R` sending a finite idèle 
 `x` to the product `∏_v v^(val_v(x_v))`, where `val_v` denotes the additive `v`-adic valuation. -/
-def MapToFractionalIdeals.val : FiniteIdeleGroup' R K → FractionalIdeal (nonZeroDivisors R) K :=
+def MapToFractionalIdeals.val : finiteIdeleGroup R K → FractionalIdeal (nonZeroDivisors R) K :=
   fun x =>
   ∏ᶠ v : HeightOneSpectrum R,
     (v.asIdeal : FractionalIdeal (nonZeroDivisors R) K) ^ FiniteIdele.toAddValuations R K x v
 
 def MapToFractionalIdeals.groupHom :
-    MonoidHom (FiniteIdeleGroup' R K) (FractionalIdeal (nonZeroDivisors R) K)
+    MonoidHom (finiteIdeleGroup R K) (FractionalIdeal (nonZeroDivisors R) K)
     where
   toFun := MapToFractionalIdeals.val R K
   map_one' := by
@@ -320,12 +323,12 @@ def MapToFractionalIdeals.groupHom :
 
 /-- The map from `finite_idele_group' R K` to the fractional_ideals of `R` sending a finite idèle 
 `x` to the product `∏_v v^-(val_v(x_v))`, where `val_v` denotes the additive `v`-adic valuation. -/
-def MapToFractionalIdeals.inv : FiniteIdeleGroup' R K → FractionalIdeal (nonZeroDivisors R) K :=
+def MapToFractionalIdeals.inv : finiteIdeleGroup R K → FractionalIdeal (nonZeroDivisors R) K :=
   fun x =>
   ∏ᶠ v : HeightOneSpectrum R,
     (v.asIdeal : FractionalIdeal (nonZeroDivisors R) K) ^ (-FiniteIdele.toAddValuations R K x v)
 
-theorem FiniteIdele.toAddValuations.hMul_inv (x : FiniteIdeleGroup' R K) :
+theorem FiniteIdele.toAddValuations.hMul_inv (x : finiteIdeleGroup R K) :
     MapToFractionalIdeals.val R K x * MapToFractionalIdeals.inv R K x = 1 :=
   by
   rw [MapToFractionalIdeals.val, MapToFractionalIdeals.inv]
@@ -337,7 +340,7 @@ theorem FiniteIdele.toAddValuations.hMul_inv (x : FiniteIdeleGroup' R K) :
   · rw [Ne.def, FractionalIdeal.coeIdeal_eq_zero]
     exact v.ne_bot
 
-theorem FiniteIdele.toAddValuations.inv_hMul (x : FiniteIdeleGroup' R K) :
+theorem FiniteIdele.toAddValuations.inv_hMul (x : finiteIdeleGroup R K) :
     MapToFractionalIdeals.inv R K x * MapToFractionalIdeals.val R K x = 1 := by
   simpa [mul_comm] using FiniteIdele.toAddValuations.hMul_inv R K x
 
@@ -345,14 +348,14 @@ theorem FiniteIdele.toAddValuations.inv_hMul (x : FiniteIdeleGroup' R K) :
 finite idèle `x` to the product `∏_v v^(val_v(x_v))`, where `val_v` denotes the additive `v`-adic
 valuation. -/
 def MapToFractionalIdeals.def :
-    FiniteIdeleGroup' R K → Units (FractionalIdeal (nonZeroDivisors R) K) :=
+    finiteIdeleGroup R K → Units (FractionalIdeal (nonZeroDivisors R) K) :=
   forceNoncomputable fun x =>
     ⟨MapToFractionalIdeals.val R K x, MapToFractionalIdeals.inv R K x,
       FiniteIdele.toAddValuations.hMul_inv R K x, FiniteIdele.toAddValuations.inv_hMul R K x⟩
 
 /-- `map_to_fractional_ideals.def` is a group homomorphism. -/
 def mapToFractionalIdeals :
-    MonoidHom (FiniteIdeleGroup' R K) (Units (FractionalIdeal (nonZeroDivisors R) K))
+    MonoidHom (finiteIdeleGroup R K) (Units (FractionalIdeal (nonZeroDivisors R) K))
     where
   toFun := MapToFractionalIdeals.def R K
   map_one' :=
@@ -371,15 +374,15 @@ variable {R K}
 theorem val_property {a : ∀ v : HeightOneSpectrum R, v.adicCompletion K}
     (ha :
       ∀ᶠ v : HeightOneSpectrum R in Filter.cofinite,
-        (Valued.v (a v) : WithZero (Multiplicative ℤ)) = 1)
+        (Valued.v (a v) : ℤₘ₀) = 1)
     (h_ne_zero : ∀ v : HeightOneSpectrum R, a v ≠ 0) :
     ∀ᶠ v : HeightOneSpectrum R in Filter.cofinite, a v ∈ v.adicCompletionIntegers K :=
   by
   rw [Filter.eventually_cofinite] at ha ⊢
   simp_rw [adicCompletion.is_integer]
   have h_subset :
-    {x : height_one_spectrum R | ¬(Valued.v (a x) : WithZero (Multiplicative ℤ)) ≤ 1} ⊆
-      {x : height_one_spectrum R | ¬(Valued.v (a x) : WithZero (Multiplicative ℤ)) = 1} :=
+    {x : HeightOneSpectrum R | ¬(Valued.v (a x) : ℤₘ₀) ≤ 1} ⊆
+      {x : HeightOneSpectrum R | ¬(Valued.v (a x) : ℤₘ₀) = 1} :=
     by
     intro v hv
     exact ne_of_gt (not_le.mp hv)
@@ -388,15 +391,15 @@ theorem val_property {a : ∀ v : HeightOneSpectrum R, v.adicCompletion K}
 theorem inv_property {a : ∀ v : HeightOneSpectrum R, v.adicCompletion K}
     (ha :
       ∀ᶠ v : HeightOneSpectrum R in Filter.cofinite,
-        (Valued.v (a v) : WithZero (Multiplicative ℤ)) = 1)
+        (Valued.v (a v) : ℤₘ₀) = 1)
     (h_ne_zero : ∀ v : HeightOneSpectrum R, a v ≠ 0) :
     ∀ᶠ v : HeightOneSpectrum R in Filter.cofinite, (a v)⁻¹ ∈ v.adicCompletionIntegers K :=
   by
   rw [Filter.eventually_cofinite] at ha ⊢
   simp_rw [adicCompletion.is_integer, not_le]
   have h_subset :
-    {x : height_one_spectrum R | 1 < (Valued.v (a x)⁻¹ : WithZero (Multiplicative ℤ))} ⊆
-      {x : height_one_spectrum R | ¬(Valued.v (a x) : WithZero (Multiplicative ℤ)) = 1} :=
+    {x : HeightOneSpectrum R | 1 < (Valued.v (a x)⁻¹ : ℤₘ₀)} ⊆
+      {x : HeightOneSpectrum R | ¬(Valued.v (a x) : ℤₘ₀) = 1} :=
     by
     intro v hv
     rw [mem_set_of_eq, map_inv₀] at hv 
@@ -407,7 +410,7 @@ theorem inv_property {a : ∀ v : HeightOneSpectrum R, v.adicCompletion K}
 theorem right_inv' {a : ∀ v : HeightOneSpectrum R, v.adicCompletion K}
     (ha :
       ∀ᶠ v : HeightOneSpectrum R in Filter.cofinite,
-        (Valued.v (a v) : WithZero (Multiplicative ℤ)) = 1)
+        (Valued.v (a v) : ℤₘ₀) = 1)
     (h_ne_zero : ∀ v : HeightOneSpectrum R, a v ≠ 0) :
     (⟨a, val_property ha h_ne_zero⟩ : FiniteAdeleRing' R K) *
         ⟨fun v : HeightOneSpectrum R => (a v)⁻¹, inv_property ha h_ne_zero⟩ =
@@ -423,7 +426,7 @@ theorem right_inv' {a : ∀ v : HeightOneSpectrum R, v.adicCompletion K}
 theorem left_inv' {a : ∀ v : HeightOneSpectrum R, v.adicCompletion K}
     (ha :
       ∀ᶠ v : HeightOneSpectrum R in Filter.cofinite,
-        (Valued.v (a v) : WithZero (Multiplicative ℤ)) = 1)
+        (Valued.v (a v) : ℤₘ₀) = 1)
     (h_ne_zero : ∀ v : HeightOneSpectrum R, a v ≠ 0) :
     (⟨fun v : HeightOneSpectrum R => (a v)⁻¹, inv_property ha h_ne_zero⟩ : FiniteAdeleRing' R K) *
         ⟨a, val_property ha h_ne_zero⟩ =
@@ -435,13 +438,13 @@ theorem left_inv' {a : ∀ v : HeightOneSpectrum R, v.adicCompletion K}
 def Idele.mk (a : ∀ v : HeightOneSpectrum R, v.adicCompletion K)
     (ha :
       ∀ᶠ v : HeightOneSpectrum R in Filter.cofinite,
-        (Valued.v (a v) : WithZero (Multiplicative ℤ)) = 1)
-    (h_ne_zero : ∀ v : HeightOneSpectrum R, a v ≠ 0) : FiniteIdeleGroup' R K :=
+        (Valued.v (a v) : ℤₘ₀) = 1)
+    (h_ne_zero : ∀ v : HeightOneSpectrum R, a v ≠ 0) : finiteIdeleGroup R K :=
   ⟨⟨a, val_property ha h_ne_zero⟩,
     ⟨fun v : HeightOneSpectrum R => (a v)⁻¹, inv_property ha h_ne_zero⟩, right_inv' ha h_ne_zero,
     left_inv' ha h_ne_zero⟩
 
-theorem mapToFractionalIdeals.inv_eq_inv (x : FiniteIdeleGroup' R K)
+theorem mapToFractionalIdeals.inv_eq_inv (x : finiteIdeleGroup R K)
     (I : Units (FractionalIdeal (nonZeroDivisors R) K))
     (hxI : MapToFractionalIdeals.val R K x = I.val) : MapToFractionalIdeals.inv R K x = I.inv :=
   haveI h_inv : I.val * MapToFractionalIdeals.inv R K x = 1 := by rw [← hxI];
@@ -471,9 +474,9 @@ theorem Idele.Mk'.val {exps : ∀ v : HeightOneSpectrum R, ℤ}
   rw [Filter.eventually_cofinite] at h_exps ⊢
   simp_rw [adicCompletion.is_integer]
   have h_subset :
-    {x : height_one_spectrum R |
-        ¬(Valued.v (Pi.unif R K x ^ exps x) : WithZero (Multiplicative ℤ)) ≤ 1} ⊆
-      {x : height_one_spectrum R | ¬exps x = 0} :=
+    {x : HeightOneSpectrum R |
+        ¬(Valued.v (Pi.unif R K x ^ exps x) : ℤₘ₀) ≤ 1} ⊆
+      {x : HeightOneSpectrum R | ¬exps x = 0} :=
     by
     intro v hv
     rw [mem_set_of_eq] at hv ⊢
@@ -490,9 +493,9 @@ theorem Idele.Mk'.inv {exps : ∀ v : HeightOneSpectrum R, ℤ}
   rw [Filter.eventually_cofinite] at h_exps ⊢
   simp_rw [adicCompletion.is_integer]
   have h_subset :
-    {x : height_one_spectrum R |
-        ¬(Valued.v (Pi.unif R K x ^ (-exps x)) : WithZero (Multiplicative ℤ)) ≤ 1} ⊆
-      {x : height_one_spectrum R | ¬exps x = 0} :=
+    {x : HeightOneSpectrum R |
+        ¬(Valued.v (Pi.unif R K x ^ (-exps x)) : ℤₘ₀) ≤ 1} ⊆
+      {x : HeightOneSpectrum R | ¬exps x = 0} :=
     by
     intro v hv
     rw [mem_set_of_eq] at hv ⊢
@@ -530,7 +533,7 @@ variable (R K)
 /-- Given a collection `exps` of integers indexed by the maximal ideals `v` of `R`, of which only
 finitely many are allowed to be nonzero, `(pi_v^(exps v))_v` is a finite idèle of `R`. -/
 def Idele.mk' {exps : ∀ v : HeightOneSpectrum R, ℤ}
-    (h_exps : ∀ᶠ v : HeightOneSpectrum R in Filter.cofinite, exps v = 0) : FiniteIdeleGroup' R K :=
+    (h_exps : ∀ᶠ v : HeightOneSpectrum R in Filter.cofinite, exps v = 0) : finiteIdeleGroup R K :=
   ⟨⟨fun v : HeightOneSpectrum R => Pi.unif R K v ^ exps v, Idele.Mk'.val h_exps⟩,
     ⟨fun v : HeightOneSpectrum R => Pi.unif R K v ^ (-exps v), Idele.Mk'.inv h_exps⟩,
     Idele.Mk'.hMul_inv h_exps, Idele.Mk'.inv_hMul h_exps⟩
@@ -539,7 +542,7 @@ variable {R K}
 
 theorem Idele.mk'.valuation_ne_zero {exps : ∀ v : HeightOneSpectrum R, ℤ}
     (h_exps : ∀ᶠ v : HeightOneSpectrum R in Filter.cofinite, exps v = 0) :
-    (Valued.v ((Idele.mk' R K h_exps).val.val v) : WithZero (Multiplicative ℤ)) ≠ 0 :=
+    (Valued.v ((Idele.mk' R K h_exps).val.val v) : ℤₘ₀) ≠ 0 :=
   by
   rw [Ne.def, Valuation.zero_iff]
   simp only [Idele.mk']
@@ -556,7 +559,7 @@ theorem mapToFractionalIdeals.surjective : Surjective (mapToFractionalIdeals R K
   have hI_ne_zero : I ≠ 0 := left_ne_zero_of_mul_eq_one hval_inv
   have hI := FractionalIdeal.factorization I hI_ne_zero haJ
   have h_exps :
-    ∀ᶠ v : height_one_spectrum R in Filter.cofinite,
+    ∀ᶠ v : HeightOneSpectrum R in Filter.cofinite,
       ((Associates.mk v.asIdeal).count (Associates.mk J).factors : ℤ) -
           (Associates.mk v.asIdeal).count (Associates.mk (Ideal.span {a})).factors =
         0 :=
@@ -570,14 +573,14 @@ theorem mapToFractionalIdeals.surjective : Surjective (mapToFractionalIdeals R K
     apply finprod_congr
     intro v
     apply congr_arg
-    have hv : (Valued.v ((Idele.mk' R K h_exps).val.val v) : WithZero (Multiplicative ℤ)) ≠ 0 :=
+    have hv : (Valued.v ((Idele.mk' R K h_exps).val.val v) : ℤₘ₀) ≠ 0 :=
       Idele.mk'.valuation_ne_zero v h_exps
     rw [WithZero.toInteger]
     set x := Classical.choose (WithZero.ToInteger._proof_1 hv) with hx_def
     have hx := Classical.choose_spec (WithZero.ToInteger._proof_1 hv)
     rw [← hx_def] at hx ⊢
     simp only [Idele.mk', Pi.unif] at hx 
-    rw [map_zpow₀, height_one_spectrum.valued_adic_completion_def, Valued.extension_extends,
+    rw [map_zpow₀, HeightOneSpectrum.valued_adic_completion_def, Valued.extension_extends,
       v.adic_valued_apply, Classical.choose_spec (v.valuation_exists_uniformizer K), ←
       WithZero.coe_zpow, WithZero.coe_inj] at hx 
     rw [hx, ← ofAdd_zsmul, toAdd_ofAdd, Algebra.id.smul_eq_mul, mul_neg, mul_one, neg_neg]
@@ -587,7 +590,7 @@ variable {R K}
 
 /-- A finite idèle `x` is in the kernel of `map_to_fractional_ideals` if and only if `|x_v|_v = 1` 
 for all `v`. -/
-theorem mapToFractionalIdeals.mem_kernel_iff (x : FiniteIdeleGroup' R K) :
+theorem mapToFractionalIdeals.mem_kernel_iff (x : finiteIdeleGroup R K) :
     mapToFractionalIdeals R K x = 1 ↔
       ∀ v : HeightOneSpectrum R, FiniteIdele.toAddValuations R K x v = 0 :=
   by
@@ -599,7 +602,7 @@ theorem mapToFractionalIdeals.mem_kernel_iff (x : FiniteIdeleGroup' R K) :
     rw [← FractionalIdeal.count_finprod K v (FiniteIdele.toAddValuations R K x), ←
       FractionalIdeal.count_one K v, h_ker]
     exact finite_add_support R K x
-  · rw [← @finprod_one _ (height_one_spectrum R) _]
+  · rw [← @finprod_one _ (HeightOneSpectrum R) _]
     apply finprod_congr
     intro v
     rw [h_val v, zpow_zero _]
@@ -607,9 +610,9 @@ theorem mapToFractionalIdeals.mem_kernel_iff (x : FiniteIdeleGroup' R K) :
 variable (R K)
 
 /-- The additive `v`-adic valuation of `x_v` equals 0 if and only if `|x_v|_v = 1`-/
-theorem FiniteIdele.toAddValuations.comp_eq_zero_iff (x : FiniteIdeleGroup' R K) :
+theorem FiniteIdele.toAddValuations.comp_eq_zero_iff (x : finiteIdeleGroup R K) :
     FiniteIdele.toAddValuations R K x v = 0 ↔
-      (Valued.v (x.val.val v) : WithZero (Multiplicative ℤ)) = 1 :=
+      (Valued.v (x.val.val v) : ℤₘ₀) = 1 :=
   by
   set y :=
     Classical.choose
@@ -624,8 +627,8 @@ theorem FiniteIdele.toAddValuations.comp_eq_zero_iff (x : FiniteIdeleGroup' R K)
   refine' ⟨fun h_eq => by rw [← ofAdd_toAdd y, ← ofAdd_toAdd 1, h_eq], fun h_eq => by rw [h_eq]⟩
 
 /-- `|x_v|_v = 1` if and only if both `x_v` and `x⁻¹_v` are in `R_v`. -/
-theorem FiniteIdele.valuation_eq_one_iff (x : FiniteIdeleGroup' R K) :
-    (Valued.v (x.val.val v) : WithZero (Multiplicative ℤ)) = 1 ↔
+theorem FiniteIdele.valuation_eq_one_iff (x : finiteIdeleGroup R K) :
+    (Valued.v (x.val.val v) : ℤₘ₀) = 1 ↔
       x.val.val v ∈ v.adicCompletionIntegers K ∧ x⁻¹.val.val v ∈ v.adicCompletionIntegers K :=
   by
   rw [adicCompletion.is_integer, adicCompletion.is_integer]
@@ -646,16 +649,16 @@ theorem mapToFractionalIdeals.continuous : Continuous (mapToFractionalIdeals R K
   apply UniformContinuous.continuous
   rw [UniformGroup.uniformContinuous_iff_open_ker]
   have h_ker :
-    ((mapToFractionalIdeals R K).ker : Set (FiniteIdeleGroup' R K)) =
+    ((mapToFractionalIdeals R K).ker : Set (finiteIdeleGroup R K)) =
       {x : Units (FiniteAdeleRing' R K) |
-        ∀ v : height_one_spectrum R, FiniteIdele.toAddValuations R K x v = 0} :=
+        ∀ v : HeightOneSpectrum R, FiniteIdele.toAddValuations R K x v = 0} :=
     by
     ext x
     exact mapToFractionalIdeals.mem_kernel_iff x
   change IsOpen ↑(mapToFractionalIdeals R K).ker
   rw [h_ker]
   use{p : FiniteAdeleRing' R K × (FiniteAdeleRing' R K)ᵐᵒᵖ |
-      ∀ v : height_one_spectrum R,
+      ∀ v : HeightOneSpectrum R,
         p.1.val v ∈ v.adicCompletionIntegers K ∧
           (MulOpposite.unop p.2).val v ∈ v.adicCompletionIntegers K}
   constructor
@@ -663,9 +666,9 @@ theorem mapToFractionalIdeals.continuous : Continuous (mapToFractionalIdeals R K
     intro x y hxy
     rw [mem_set_of_eq] at hxy 
     use{x : FiniteAdeleRing' R K |
-        ∀ v : height_one_spectrum R, x.val v ∈ v.adicCompletionIntegers K}
+        ∀ v : HeightOneSpectrum R, x.val v ∈ v.adicCompletionIntegers K}
     use{x : (FiniteAdeleRing' R K)ᵐᵒᵖ |
-        ∀ v : height_one_spectrum R, (MulOpposite.unop x).val v ∈ v.adicCompletionIntegers K}
+        ∀ v : HeightOneSpectrum R, (MulOpposite.unop x).val v ∈ v.adicCompletionIntegers K}
     refine'
       ⟨FiniteAdeleRing'.isOpen_integer_subring R K, FiniteAdeleRing'.isOpen_integer_subring_opp R K,
         fun v => (hxy v).1, fun v => (hxy v).2, _⟩
@@ -677,3 +680,4 @@ theorem mapToFractionalIdeals.continuous : Continuous (mapToFractionalIdeals R K
     simp_rw [FiniteIdele.toAddValuations.comp_eq_zero_iff, FiniteIdele.valuation_eq_one_iff]
     rfl
 
+end DedekindDomain
