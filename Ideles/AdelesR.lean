@@ -3,7 +3,7 @@ Copyright (c) 2022 María Inés de Frutos-Fernández. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: María Inés de Frutos-Fernández
 -/
-import Ideles.FractionalIdeal
+import Mathlib.RingTheory.FractionalIdeal.Operations
 --import Mathlib.RingTheory.Valuation.Integers
 import Mathlib.Topology.Algebra.Localization -- for alternative definition
 import Mathlib.Topology.Algebra.ValuedField
@@ -118,17 +118,17 @@ theorem adicCompletion.adicCompletionIntegers_isOpen :
 /-- A generating set for the topology on the finite adèle ring of `R` consists on products `∏_v U_v`
 of open sets such that `U_v = adic_completion_integers` for all but finitely many maximal ideals
 `v`. -/
-def finiteAdeleRing.generatingSet : Set (Set (finiteAdeleRing R K)) :=
-  {U : Set (finiteAdeleRing R K) |
+def FiniteAdeleRing.generatingSet : Set (Set (FiniteAdeleRing R K)) :=
+  {U : Set (FiniteAdeleRing R K) |
     ∃ V : ∀ v : HeightOneSpectrum R, Set (v.adicCompletion K),
-      (∀ x : finiteAdeleRing R K, x ∈ U ↔ ∀ v, x.val v ∈ V v) ∧
+      (∀ x : FiniteAdeleRing R K, x ∈ U ↔ ∀ v, x.val v ∈ V v) ∧
         (∀ v, IsOpen (V v)) ∧ ∀ᶠ v in Filter.cofinite, V v = v.adicCompletionIntegers K}
 
 /-- The topology on the finite adèle ring of `R`. -/
-instance : TopologicalSpace (finiteAdeleRing R K) :=
-  TopologicalSpace.generateFrom (finiteAdeleRing.generatingSet R K)
+instance : TopologicalSpace (FiniteAdeleRing R K) :=
+  TopologicalSpace.generateFrom (FiniteAdeleRing.generatingSet R K)
 
-private theorem set_cond_finite {x y : finiteAdeleRing R K}
+private theorem set_cond_finite {x y : FiniteAdeleRing R K}
     {V : ∀ v : HeightOneSpectrum R, Set (v.adicCompletion K)}
     (hV_int : ∀ᶠ v : HeightOneSpectrum R in Filter.cofinite, V v = ↑(v.adicCompletionIntegers K)) :
     {v : HeightOneSpectrum R | ¬(x.val v ∈ v.adicCompletionIntegers K ∧
@@ -137,7 +137,7 @@ private theorem set_cond_finite {x y : finiteAdeleRing R K}
     (fun v => y.val v ∈ v.adicCompletionIntegers K) fun v => V v = v.adicCompletionIntegers K
   Finite.subset (Finite.union (Finite.union x.property y.property) hV_int) h_subset
 
-private theorem is_open_Vx {x y : finiteAdeleRing R K}
+private theorem is_open_Vx {x y : FiniteAdeleRing R K}
     {V : ∀ v : HeightOneSpectrum R, Set (v.adicCompletion K)}
     (hV : ∀ v : HeightOneSpectrum R,
       IsOpen ((fun p : v.adicCompletion K × v.adicCompletion K => p.fst + p.snd) ⁻¹' V v))
@@ -149,7 +149,7 @@ private theorem is_open_Vx {x y : finiteAdeleRing R K}
         y.val v ∈ v.adicCompletionIntegers K ∧ V v = v.adicCompletionIntegers K)
       (v.adicCompletionIntegers K : Set (HeightOneSpectrum.adicCompletion K v))
       (choose (isOpen_prod_iff.mp (hV v) (x.val v) (y.val v) (hxy v)))) :
-    IsOpen {z : finiteAdeleRing R K | ∀ v : HeightOneSpectrum R, z.val v ∈ Vx v} := by
+    IsOpen {z : FiniteAdeleRing R K | ∀ v : HeightOneSpectrum R, z.val v ∈ Vx v} := by
   apply TopologicalSpace.isOpen_generateFrom_of_mem
   use Vx
   refine' ⟨fun x => by rfl, _, _⟩
@@ -160,10 +160,10 @@ private theorem is_open_Vx {x y : finiteAdeleRing R K}
       {v : HeightOneSpectrum R | ¬(x.val v ∈ v.adicCompletionIntegers K ∧
         y.val v ∈ v.adicCompletionIntegers K ∧ V v = v.adicCompletionIntegers K)} := by
       intros v hv h_cond_v
-      simp only [mem_setOf_eq, hVx, if_pos h_cond_v] at hv
+      simp only [mem_setOf_eq, hVx, if_pos h_cond_v, not_true_eq_false] at hv
     exact Finite.subset (set_cond_finite R K hV_int) h_subset
 
-private theorem is_open_Vy {x y : finiteAdeleRing R K}
+private theorem is_open_Vy {x y : FiniteAdeleRing R K}
     {V : ∀ v : HeightOneSpectrum R, Set (v.adicCompletion K)}
     (hV : ∀ v : HeightOneSpectrum R,
       IsOpen ((fun p : v.adicCompletion K × v.adicCompletion K => p.fst + p.snd) ⁻¹' V v))
@@ -175,7 +175,7 @@ private theorem is_open_Vy {x y : finiteAdeleRing R K}
         y.val v ∈ v.adicCompletionIntegers K ∧ V v = v.adicCompletionIntegers K)
       (v.adicCompletionIntegers K : Set (HeightOneSpectrum.adicCompletion K v))
       (choose (choose_spec (isOpen_prod_iff.mp (hV v) (x.val v) (y.val v) (hxy v))))) :
-    IsOpen {z : finiteAdeleRing R K | ∀ v : HeightOneSpectrum R, z.val v ∈ Vy v} := by
+    IsOpen {z : FiniteAdeleRing R K | ∀ v : HeightOneSpectrum R, z.val v ∈ Vy v} := by
   apply TopologicalSpace.isOpen_generateFrom_of_mem
   use Vy
   refine' ⟨fun x => by rfl, _, _⟩
@@ -186,13 +186,13 @@ private theorem is_open_Vy {x y : finiteAdeleRing R K}
       {v : HeightOneSpectrum R | ¬(x.val v ∈ v.adicCompletionIntegers K ∧
         y.val v ∈ v.adicCompletionIntegers K ∧ V v = v.adicCompletionIntegers K)} := by
       intros v hv h_cond_v
-      simp only [mem_setOf_eq, hVx, if_pos h_cond_v] at hv
+      simp only [mem_setOf_eq, hVx, if_pos h_cond_v, not_true_eq_false] at hv
     exact Finite.subset (set_cond_finite R K hV_int) h_subset
 
 /-- Addition on the finite adèle ring of `R` is continuous. -/
-theorem finiteAdeleRing.continuous_add :
-    Continuous fun p : finiteAdeleRing R K × finiteAdeleRing R K => p.fst + p.snd := by
-  apply continuous_generateFrom
+theorem FiniteAdeleRing.continuous_add :
+    Continuous fun p : FiniteAdeleRing R K × FiniteAdeleRing R K => p.fst + p.snd := by
+  rw [continuous_generateFrom_iff]
   rintro U ⟨V, hUV, hV_open, hV_int⟩
   have hV : ∀ v : HeightOneSpectrum R,
       IsOpen ((fun p : v.adicCompletion K × v.adicCompletion K => p.fst + p.snd) ⁻¹' (V v)) :=
@@ -210,8 +210,8 @@ theorem finiteAdeleRing.continuous_add :
   set Vy : ∀ v : HeightOneSpectrum R, Set (v.adicCompletion K) := fun v =>
     ite (cond v) (v.adicCompletionIntegers K)
       (choose (choose_spec (isOpen_prod_iff.mp (hV v) _ _ (hxy' v)))) with hVy
-  use {z : finiteAdeleRing R K | ∀ v : HeightOneSpectrum R, z.val v ∈ Vx v},
-    {z : finiteAdeleRing R K | ∀ v : HeightOneSpectrum R, z.val v ∈ Vy v}
+  use {z : FiniteAdeleRing R K | ∀ v : HeightOneSpectrum R, z.val v ∈ Vx v},
+    {z : FiniteAdeleRing R K | ∀ v : HeightOneSpectrum R, z.val v ∈ Vy v}
   refine' ⟨is_open_Vx R K hV hV_int hxy' hVx, is_open_Vy R K hV hV_int hxy' hVy, _, _, _⟩
   · intro v
     simp only [hVx]
@@ -240,7 +240,7 @@ theorem finiteAdeleRing.continuous_add :
       · rw [if_neg hv, if_neg hv] at hp'
         exact  (choose_spec (choose_spec (isOpen_prod_iff.mp (hV v) _ _ (hxy' v)))).2.2.2.2 hp'
 
-private theorem is_open_Vx_mul {x y : finiteAdeleRing R K}
+private theorem is_open_Vx_mul {x y : FiniteAdeleRing R K}
     {V : ∀ v : HeightOneSpectrum R, Set (v.adicCompletion K)}
     (hV : ∀ v : HeightOneSpectrum R,
       IsOpen ((fun p : v.adicCompletion K × v.adicCompletion K => p.fst * p.snd) ⁻¹' V v))
@@ -252,7 +252,7 @@ private theorem is_open_Vx_mul {x y : finiteAdeleRing R K}
         y.val v ∈ v.adicCompletionIntegers K ∧ V v = v.adicCompletionIntegers K)
       (v.adicCompletionIntegers K : Set (HeightOneSpectrum.adicCompletion K v))
       (choose (isOpen_prod_iff.mp (hV v) (x.val v) (y.val v) (hxy v)))) :
-    IsOpen {z : finiteAdeleRing R K | ∀ v : HeightOneSpectrum R, z.val v ∈ Vx v} := by
+    IsOpen {z : FiniteAdeleRing R K | ∀ v : HeightOneSpectrum R, z.val v ∈ Vx v} := by
   apply TopologicalSpace.isOpen_generateFrom_of_mem
   use Vx
   refine' ⟨fun x => by rfl, _, _⟩
@@ -263,10 +263,10 @@ private theorem is_open_Vx_mul {x y : finiteAdeleRing R K}
         {v : HeightOneSpectrum R | ¬(x.val v ∈ v.adicCompletionIntegers K ∧
           y.val v ∈ v.adicCompletionIntegers K ∧ V v = v.adicCompletionIntegers K)} := by
       intro v hv h_cond_v
-      simp only [mem_setOf_eq, hVx, if_pos h_cond_v] at hv
+      simp only [mem_setOf_eq, hVx, if_pos h_cond_v, not_true_eq_false] at hv
     exact Finite.subset (set_cond_finite R K hV_int) h_subset
 
-private theorem is_open_Vy_mul {x y : finiteAdeleRing R K}
+private theorem is_open_Vy_mul {x y : FiniteAdeleRing R K}
     {V : ∀ v : HeightOneSpectrum R, Set (v.adicCompletion K)}
     (hV : ∀ v : HeightOneSpectrum R,
       IsOpen ((fun p : v.adicCompletion K × v.adicCompletion K => p.fst * p.snd) ⁻¹' V v))
@@ -278,7 +278,7 @@ private theorem is_open_Vy_mul {x y : finiteAdeleRing R K}
         y.val v ∈ v.adicCompletionIntegers K ∧ V v = v.adicCompletionIntegers K)
       (v.adicCompletionIntegers K : Set (HeightOneSpectrum.adicCompletion K v))
       (choose (choose_spec (isOpen_prod_iff.mp (hV v) (x.val v) (y.val v) (hxy v))))) :
-    IsOpen {z : finiteAdeleRing R K | ∀ v : HeightOneSpectrum R, z.val v ∈ Vy v} := by
+    IsOpen {z : FiniteAdeleRing R K | ∀ v : HeightOneSpectrum R, z.val v ∈ Vy v} := by
   apply TopologicalSpace.isOpen_generateFrom_of_mem
   use Vy
   refine' ⟨fun x => by rfl, _, _⟩
@@ -289,13 +289,13 @@ private theorem is_open_Vy_mul {x y : finiteAdeleRing R K}
         {v : HeightOneSpectrum R | ¬(x.val v ∈ v.adicCompletionIntegers K ∧
           y.val v ∈ v.adicCompletionIntegers K ∧ V v = v.adicCompletionIntegers K)} := by
       intro v hv h_cond_v
-      simp only [mem_setOf_eq, hVx, if_pos h_cond_v] at hv
+      simp only [mem_setOf_eq, hVx, if_pos h_cond_v, not_true_eq_false] at hv
     exact Finite.subset (set_cond_finite R K hV_int) h_subset
 
 /-- Multiplication on the finite adèle ring of `R` is continuous. -/
-theorem finiteAdeleRing.continuous_hMul :
-    Continuous fun p : finiteAdeleRing R K × finiteAdeleRing R K => p.fst * p.snd := by
-  apply continuous_generateFrom
+theorem FiniteAdeleRing.continuous_hMul :
+    Continuous fun p : FiniteAdeleRing R K × FiniteAdeleRing R K => p.fst * p.snd := by
+  rw [continuous_generateFrom_iff]
   rintro U ⟨V, hUV, hV_open, hV_int⟩
   have hV : ∀ v : HeightOneSpectrum R,
       IsOpen ((fun p : v.adicCompletion K × v.adicCompletion K => p.fst * p.snd) ⁻¹' V v) :=
@@ -313,8 +313,8 @@ theorem finiteAdeleRing.continuous_hMul :
   set Vy : ∀ v : HeightOneSpectrum R, Set (v.adicCompletion K) := fun v =>
     ite (cond v) (v.adicCompletionIntegers K)
       (choose (choose_spec (isOpen_prod_iff.mp (hV v) _ _ (hxy' v)))) with hVy
-  use {z : finiteAdeleRing R K | ∀ v : HeightOneSpectrum R, z.val v ∈ Vx v},
-    {z : finiteAdeleRing R K | ∀ v : HeightOneSpectrum R, z.val v ∈ Vy v}
+  use {z : FiniteAdeleRing R K | ∀ v : HeightOneSpectrum R, z.val v ∈ Vx v},
+    {z : FiniteAdeleRing R K | ∀ v : HeightOneSpectrum R, z.val v ∈ Vy v}
   refine' ⟨is_open_Vx_mul R K hV hV_int hxy' hVx, is_open_Vy_mul R K hV hV_int hxy' hVy, _, _, _⟩
   · intro v
     simp only [hVx]
@@ -347,59 +347,59 @@ theorem finiteAdeleRing.continuous_hMul :
       · rw [if_neg hv, if_neg hv] at hp'
         exact (choose_spec (choose_spec (isOpen_prod_iff.mp (hV v) _ _ (hxy' v)))).2.2.2.2 hp'
 
-instance : ContinuousMul (finiteAdeleRing R K) :=
-  ⟨finiteAdeleRing.continuous_hMul R K⟩
+instance : ContinuousMul (FiniteAdeleRing R K) :=
+  ⟨FiniteAdeleRing.continuous_hMul R K⟩
 
 /-- The finite adèle ring of `R` is a topological ring. -/
-instance : TopologicalRing (finiteAdeleRing R K) :=
-  { finiteAdeleRing.continuous_hMul R K with
-    continuous_add := finiteAdeleRing.continuous_add R K
+instance : TopologicalRing (FiniteAdeleRing R K) :=
+  { FiniteAdeleRing.continuous_hMul R K with
+    continuous_add := FiniteAdeleRing.continuous_add R K
     continuous_neg := TopologicalSemiring.continuousNeg_of_mul.continuous_neg }
 
 /-- The product `∏_v adic_completion_integers` is an open subset of the finite adèle ring of `R`. -/
-theorem finiteAdeleRing.isOpen_integer_subring :
-    IsOpen {x : finiteAdeleRing R K |
+theorem FiniteAdeleRing.isOpen_integer_subring :
+    IsOpen {x : FiniteAdeleRing R K |
       ∀ v : HeightOneSpectrum R, x.val v ∈ v.adicCompletionIntegers K} := by
   apply TopologicalSpace.GenerateOpen.basic
-  rw [finiteAdeleRing.generatingSet]
+  rw [FiniteAdeleRing.generatingSet]
   use fun v => v.adicCompletionIntegers K
   refine' ⟨fun v => by rfl, fun v => adicCompletion.adicCompletionIntegers_isOpen R K v, _⟩
-  · simp only [Filter.eventually_cofinite, setOf_false, finite_empty]
+  · simp only [Filter.eventually_cofinite, setOf_false, finite_empty, not_true_eq_false]
 
-theorem finiteAdeleRing.isOpen_integer_subring_opp :
-    IsOpen {x : (finiteAdeleRing R K)ᵐᵒᵖ |
+theorem FiniteAdeleRing.isOpen_integer_subring_opp :
+    IsOpen {x : (FiniteAdeleRing R K)ᵐᵒᵖ |
       ∀ v : HeightOneSpectrum R, (MulOpposite.unop x).val v ∈ v.adicCompletionIntegers K} := by
-  use {x : finiteAdeleRing R K | ∀ v : HeightOneSpectrum R, x.val v ∈ v.adicCompletionIntegers K},
-    finiteAdeleRing.isOpen_integer_subring R K
+  use {x : FiniteAdeleRing R K | ∀ v : HeightOneSpectrum R, x.val v ∈ v.adicCompletionIntegers K},
+    FiniteAdeleRing.isOpen_integer_subring R K
   rfl
 
-open ProdAdicCompletions.IsFiniteAdele
+open DedekindDomain ProdAdicCompletions.IsFiniteAdele
 
-instance : CommRing { x : K_hat R K //
+/- instance : CommRing { x : K_hat R K //
     ∀ᶠ v : HeightOneSpectrum R in Filter.cofinite, x v ∈ v.adicCompletionIntegers K } :=
-  Subring.toCommRing (finiteAdeleRing R K)
+  FiniteAdeleRing.instCommRing R K -/
 
-theorem mul_apply (x y : finiteAdeleRing R K) :
-    (⟨x.val * y.val, mul x.2 y.2⟩ : finiteAdeleRing R K) = x * y :=
+theorem mul_apply (x y : FiniteAdeleRing R K) :
+    (⟨x.val * y.val, mul x.2 y.2⟩ : FiniteAdeleRing R K) = x * y :=
   rfl
 
-theorem mul_apply_val (x y : finiteAdeleRing R K) : x.val * y.val = (x * y).val :=
+theorem mul_apply_val (x y : FiniteAdeleRing R K) : x.val * y.val = (x * y).val :=
   rfl
 
 @[simp]
-theorem one_def : (⟨1, one⟩ : finiteAdeleRing R K) = 1 := rfl
+theorem one_def : (⟨1, one⟩ : FiniteAdeleRing R K) = 1 := rfl
 
 @[simp]
-theorem zero_def : (⟨0, zero⟩ : finiteAdeleRing R K) = 0 := rfl
+theorem zero_def : (⟨0, zero⟩ : FiniteAdeleRing R K) = 0 := rfl
 
-/-- For any `x ∈ K`, the tuple `(x)_v` is a finite adèle. -/
+/- /-- For any `x ∈ K`, the tuple `(x)_v` is a finite adèle. -/
 theorem inj_K_image (x : K) : Set.Finite
     {v : HeightOneSpectrum R | ¬(x : v.adicCompletion K) ∈ v.adicCompletionIntegers K} := by
   set supp := {v : HeightOneSpectrum R | ¬ (x : v.adicCompletion K) ∈ v.adicCompletionIntegers K}
     with h_supp
   obtain ⟨r, ⟨d, hd⟩, hx⟩ := IsLocalization.mk'_surjective (nonZeroDivisors R) x
   have hd_ne_zero : Ideal.span {d} ≠ (0 : Ideal R) := by
-    rw [Ideal.zero_eq_bot, Ne.def, Ideal.span_singleton_eq_bot]
+    rw [Ideal.zero_eq_bot, ne_eq, Ideal.span_singleton_eq_bot]
     apply nonZeroDivisors.ne_zero hd
   have hsubset : supp ⊆ {v : HeightOneSpectrum R | v.asIdeal ∣ Ideal.span {d}} := by
     rw [h_supp]
@@ -415,18 +415,12 @@ theorem inj_K_image (x : K) : Set.Finite
       v.valuation_of_mk', Subtype.coe_mk, ← hdeq,
       le_antisymm (v.int_valuation_le_one d) (not_lt.mp h_one_le), div_one] at hv
     exact hv (v.int_valuation_le_one r)
-  exact Finite.subset (Ideal.finite_factors hd_ne_zero) hsubset
+  exact Finite.subset (Ideal.finite_factors hd_ne_zero) hsubset -/
 
-instance : SMul K (finiteAdeleRing R K) where
-  smul := fun k x => ⟨k • (x : K_hat R K), by
-    have hf := x.2
-    simp only [mem_finiteAdeleRing_iff, ProdAdicCompletions.IsFiniteAdele,
-      Filter.eventually_cofinite] at hf ⊢
 
-    sorry⟩
-
+/-
 /-- The diagonal inclusion `k ↦ (k)_v` of `K` into the finite adèle ring of `R`. -/
-instance : Algebra K (finiteAdeleRing R K) where
+instance : Algebra K (FiniteAdeleRing R K) where
   smul      := SMul.smul
   toFun     := fun x =>
     ⟨fun v : HeightOneSpectrum R => (x : v.adicCompletion K), inj_K_image R K x⟩
@@ -446,7 +440,7 @@ instance : Algebra K (finiteAdeleRing R K) where
     exact UniformSpace.Completion.coe_add x y
   commutes' := fun r x => by rw [mul_comm]
   smul_def' := fun r x => by
-    have h : ((r • x : finiteAdeleRing R K) : K_hat R K) = r • (x : K_hat R K ) := rfl
+    have h : ((r • x : FiniteAdeleRing R K) : K_hat R K) = r • (x : K_hat R K ) := rfl
     ext
     simp only [RingHom.coe_mk, MonoidHom.coe_mk, OneHom.coe_mk, Submonoid.coe_mul,
       Subsemiring.coe_toSubmonoid, Subring.coe_toSubsemiring, h]
@@ -454,13 +448,13 @@ instance : Algebra K (finiteAdeleRing R K) where
     intro v
     rw [Pi.smul_def, Pi.mul_def]
     simp only [Algebra.smul_def]
-    rfl
+    rfl -/
 
 /- Not needed after creating the algebra instance:
 
 /-- The diagonal inclusion `k ↦ (k)_v` of `K` into the finite adèle ring of `R`. -/
 @[simps coe]
-def injK : K → finiteAdeleRing R K := fun x =>
+def injK : K → FiniteAdeleRing R K := fun x =>
   ⟨fun v : HeightOneSpectrum R => (x : v.adicCompletion K), inj_K_image R K x⟩
 
 theorem injK_apply (k : K) :
@@ -497,14 +491,14 @@ theorem injK.map_mul (x y : K) : injK R K (x * y) = injK R K x * injK R K y :=
   norm_cast -/
 
 /-- The map `inj_K` is an additive group homomorphism. -/
-def injK.addGroupHom : AddMonoidHom K (finiteAdeleRing R K)
+def injK.addGroupHom : AddMonoidHom K (FiniteAdeleRing R K)
     where
   toFun := injK R K
   map_zero' := injK.map_zero R K
   map_add' := injK.map_add R K
 
 /-- The map `inj_K` is a ring homomorphism. -/
-def injK.ringHom : RingHom K (finiteAdeleRing R K) :=
+def injK.ringHom : RingHom K (FiniteAdeleRing R K) :=
   { injK.addGroupHom R K with
     toFun := injK R K
     map_one' := injK.map_one R K
@@ -518,14 +512,13 @@ theorem injK.ringHom_apply {k : K} : injK.ringHom R K k = injK R K k :=
 /-- If `HeightOneSpectrum R` is nonempty, then `inj_K` is injective. Note that the nonemptiness
 hypothesis is satisfied for every Dedekind domain that is not a field. -/
 theorem algebraMap_injective [inh : Nonempty (HeightOneSpectrum R)] :
-  Injective (algebraMap K (finiteAdeleRing R K)) := by
+    Injective (algebraMap K (FiniteAdeleRing R K)) := by
   rw [RingHom.injective_iff_ker_eq_bot, RingHom.ker_eq_bot_iff_eq_zero]
   intro x hx
-  rw [RingHom.coe_mk, MonoidHom.coe_mk, OneHom.coe_mk, Subtype.mk_eq_mk] at hx
   let v : HeightOneSpectrum R := (Classical.inhabited_of_nonempty inh).default
   have h_inj : Function.Injective (Coe.coe : K → v.adicCompletion K) :=
     @UniformSpace.Completion.coe_injective K v.adicValued.toUniformSpace _
-  apply h_inj (congr_fun hx v)
+  apply h_inj (congr_fun (Subtype.ext_iff.mp hx) v)
 
 
 /-! ### Alternative definition of the finite adèle ring
@@ -545,23 +538,22 @@ def diagR : Submonoid (R_hat R K) :=
         exact ⟨za * zb, mul_ne_zero hza hzb, map_mul _ za zb⟩ }
 
 /-- The finite adèle ring of `R` as the localization of `R_hat` at `R∖{0}`. -/
-def FiniteAdeleRing :=
-  Localization (diagR R K)
+def FiniteAdeleRing' := Localization (diagR R K)
 
-instance : CommRing (FiniteAdeleRing R K) :=
-  Localization.instCommRingLocalizationToCommMonoid
+instance : CommRing (FiniteAdeleRing' R K) := Localization.instCommRing
 
-instance : Algebra (R_hat R K) (FiniteAdeleRing R K) :=
+instance : Algebra (R_hat R K) (FiniteAdeleRing' R K) :=
   Localization.algebra
 
-instance : IsLocalization (diagR R K) (FiniteAdeleRing R K) :=
+instance : IsLocalization (diagR R K) (FiniteAdeleRing' R K) :=
   Localization.isLocalization
 
-instance : TopologicalSpace (FiniteAdeleRing R K) :=
-  instTopologicalSpaceLocalizationToCommMonoid
+instance : TopologicalSpace (FiniteAdeleRing' R K) := instTopologicalSpaceLocalization
+  --instTopologicalSpaceLocalizationToCommMonoid
 
-instance : TopologicalRing (FiniteAdeleRing R K) :=
+instance : TopologicalRing (FiniteAdeleRing' R K) :=
   Localization.ringTopology.toTopologicalRing
+  --Localization.ringTopology.toTopologicalRing
 
 theorem preimage_diagR (x : diagR R K) :
     ∃ r : R, r ≠ 0 ∧ algebraMap R (R_hat R K) r = (x : R_hat R K) :=
@@ -586,22 +578,22 @@ theorem homProd_diag_unit : ∀ x : diagR R K, IsUnit (Coe.algHom R K x) := by
   have h_inj : Function.Injective _ :=
     @UniformSpace.Completion.coe_injective K v.adicValued.toUniformSpace _
   rw [h_zero, Subtype.mk_eq_mk, ← UniformSpace.Completion.coe_zero, ← (algebraMap R K).map_zero,
-    ← Ne.def]
+    ← ne_eq]
   erw [Injective.ne_iff (Injective.comp h_inj (IsFractionRing.injective R K))]
   rw [mem_compl_iff, mem_singleton_iff] at hr
   exact hr
 
 /-- The map from `finite_adele_ring R K` to `K_hat R K` induced by `hom_prod`. -/
-def mapToKHat (x : FiniteAdeleRing R K) : K_hat R K :=
+def mapToKHat (x : FiniteAdeleRing' R K) : K_hat R K :=
   IsLocalization.lift (homProd_diag_unit R K) x
 
 /-- The image of `map_to_K_hat R K` is contained in `finite_adele_ring' R K`. -/
-theorem restricted_image (x : FiniteAdeleRing R K) :
+theorem restricted_image (x : FiniteAdeleRing' R K) :
     Set.Finite {v : HeightOneSpectrum R | ¬mapToKHat R K x v ∈ v.adicCompletionIntegers K} := by
   obtain ⟨r, d', hx⟩ := IsLocalization.mk'_surjective (diagR R K) x
   obtain ⟨d, hd_ne_zero, hd_inj⟩ := d'.property
   have hd : Ideal.span {d} ≠ (0 : Ideal R) := by
-    rw [Ideal.zero_eq_bot, Ne.def, Ideal.span_singleton_eq_bot]
+    rw [Ideal.zero_eq_bot, ne_eq, Ideal.span_singleton_eq_bot]
     exact hd_ne_zero
   obtain ⟨f, _, _⟩ := WfDvdMonoid.exists_factors (Ideal.span {d}) hd
   have hsubset : {v : HeightOneSpectrum R | ¬mapToKHat R K x v ∈ v.adicCompletionIntegers K} ⊆
@@ -642,26 +634,26 @@ theorem restricted_image (x : FiniteAdeleRing R K) :
 
 theorem mapToKHat.map_one : mapToKHat R K 1 = 1 := by rw [mapToKHat, RingHom.map_one]
 
-theorem mapToKHat.map_hMul (x y : FiniteAdeleRing R K) :
+theorem mapToKHat.map_hMul (x y : FiniteAdeleRing' R K) :
     mapToKHat R K (x * y) = mapToKHat R K x * mapToKHat R K y := by
   rw [mapToKHat, mapToKHat, mapToKHat, RingHom.map_mul]
 
-theorem mapToKHat.map_add (x y : FiniteAdeleRing R K) :
+theorem mapToKHat.map_add (x y : FiniteAdeleRing' R K) :
     mapToKHat R K (x + y) = mapToKHat R K x + mapToKHat R K y := by
   rw [mapToKHat, mapToKHat, mapToKHat, RingHom.map_add]
 
 theorem mapToKHat.map_zero : mapToKHat R K 0 = 0 := by rw [mapToKHat, RingHom.map_zero]
 
 /-- `map_to_K_hat` is a ring homomorphism between our two definitions of finite adèle ring.  -/
-def FiniteAdele.hom : FiniteAdeleRing R K →+* finiteAdeleRing R K where
+def FiniteAdele.hom : FiniteAdeleRing' R K →+* FiniteAdeleRing R K where
   toFun x := ⟨mapToKHat R K x, restricted_image R K x⟩
   map_one' := by
-    have h_one : (1 : finiteAdeleRing R K) = ⟨1, one⟩ := rfl
+    have h_one : (1 : FiniteAdeleRing R K) = ⟨1, one⟩ := rfl
     rw [h_one, Subtype.mk_eq_mk]
     exact mapToKHat.map_one R K
   map_mul' x y :=  Subtype.mk_eq_mk.mpr (mapToKHat.map_hMul R K x y)
   map_zero' := by
-    have h_zero : (0 : finiteAdeleRing R K) = ⟨0, zero⟩ := rfl
+    have h_zero : (0 : FiniteAdeleRing R K) = ⟨0, zero⟩ := rfl
     rw [h_zero, Subtype.mk_eq_mk]
     exact mapToKHat.map_zero R K
   map_add' x y := Subtype.mk_eq_mk.mpr (mapToKHat.map_add R K x y)
