@@ -3,8 +3,8 @@ Copyright (c) 2022 María Inés de Frutos-Fernández. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: María Inés de Frutos-Fernández
 -/
-import IdelesK
-import Galois
+import Ideles.IdelesK
+import Ideles.Galois
 
 #align_import main_theorem_GCFT
 
